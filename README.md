@@ -1,164 +1,210 @@
-# ContextSquirrel 🐿️ — your AI coding assistant's context sidekick
+# 🐿️ ContextSquirrel
+
+**Your AI coding assistant's little helper for not reading your whole repo every time.**
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node >=20](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](package.json)
 [![Zero dependencies](https://img.shields.io/badge/dependencies-0-blue.svg)](package.json)
 
-**Status: v0.2.0 developer preview — not a proven 60–70% savings product.**
+Squirrels don't drag the whole tree home. They grab the good acorns and bury
+the rest. That's the whole idea here: instead of your AI assistant reading
+entire files and pasting 5,000-line build logs into its brain, ContextSquirrel
+hands it just the good bits — a few relevant snippets, the important lines
+from a crashed build, no copy-pasted duplicate paragraphs.
 
-Squirrels don't haul the whole tree home — they grab the good acorns and
-bury the rest. ContextSquirrel does the same thing for your AI coding
-assistant: instead of dumping entire files and walls of build-log noise
-into the model's context window, it fetches small, relevant excerpts,
-shrinks verbose logs down to the lines that actually matter, and throws
-out exact duplicate paragraphs.
+It's **free, local-only, zero-dependency Node.js**. No sign-up, no API key,
+no "AI cloud" middleman reading your code. Just a tiny script that reads
+your own files on your own machine.
 
-It's **zero-dependency Node.js (20+)**, cross-platform, local-only by
-default, and MIT-licensed. No account, no API key, no payment, no
-"AI optimization cloud" — just a small script reading your own files.
+> **Honest label on the tin:** this is a v0.2.0 preview. It helps your
+> assistant fetch smaller, smarter chunks of context — it does **not**
+> intercept your AI provider's requests, and we're not going to tell you
+> it saves some magic 70% of tokens until we've actually measured that
+> end-to-end. More on that below. 👇
 
-## What it actually does, in plain terms
+---
 
-| You ask the assistant to...           | Without ContextSquirrel                              | With ContextSquirrel                                                   |
-|----------------------------------------|--------------------------------------------------------|---------------------------------------------------------------------------|
-| "Where is `verifySession` defined?"    | Reads whole files one by one hoping to find it          | Searches a local index, returns a handful of line-numbered snippets        |
-| "Why did the build fail?"              | Pastes 5,000 lines of CI log into context                | Keeps the head, tail, and lines around every error/warning; drops the rest |
-| "Summarize these three log dumps"      | Processes the same repeated boilerplate paragraph 3x    | Strips exact duplicate paragraphs before they're processed                 |
+## What does it actually do?
 
-That's it. It doesn't rewrite your prompts, it doesn't intercept your model
-calls, and it doesn't touch any provider's billing. It's a local helper
-tool the assistant can *choose* to call via MCP, or a project setting that
-reminds Claude Code to search smart instead of dumping everything.
+| You ask your assistant...            | Without 🐿️                                   | With 🐿️                                                          |
+|---------------------------------------|------------------------------------------------|----------------------------------------------------------------------|
+| "Where's `verifySession` defined?"    | Opens files one by one, hoping to get lucky     | Searches a local index, hands back the exact lines with numbers       |
+| "Why'd the build fail?"                | Pastes the whole 5,000-line CI log               | Keeps the start, the end, and every error/warning with context, skips the boring middle |
+| "Summarize these 3 log dumps"          | Chews through the same repeated boilerplate 3x  | Strips the exact duplicate paragraphs first                           |
 
-## Quick start
+That's it. No prompt rewriting, no billing tricks, no secret sauce.
+
+---
+
+## Install it — pick your path
+
+### 🟢 Path 1: You use Claude Code (VS Code extension) — easiest
 
 ```bash
+git clone https://github.com/akashraj21/contextsquirrel.git
 cd contextsquirrel
-npm test
-CONTEXTSQUIRREL_ROOT=/path/to/your/project node bin/contextsquirrel.js index
-CONTEXTSQUIRREL_ROOT=/path/to/your/project node bin/contextsquirrel.js search "session authentication"
-node bin/contextsquirrel.js benchmark
-node bin/contextsquirrel.js compress /path/to/build.log
-```
-
-On Windows PowerShell, set `$env:CONTEXTSQUIRREL_ROOT='C:\\path\\to\\project'` before commands.
-
-## Contents
-
-- [What it actually does](#what-it-actually-does-in-plain-terms)
-- [Quick start](#quick-start)
-- [What is actually implemented?](#what-is-actually-implemented)
-- [Integrate via MCP](#integrate-via-mcp-recommended)
-- [Claude Code slash-command Safe Mode](#claude-code-slash-command-safe-mode)
-- [Project structure](#project-structure)
-- [Privacy and correctness](#privacy-and-correctness)
-- [Performance claims](#performance-claims)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-
-## What is actually implemented?
-
-- Index local source files, excluding typical secrets, ignored vendor directories, huge files and symlinks.
-- Keyword/ranked source excerpt search with line numbers, SHA-256 validation and token-budget caps.
-- Safe heuristic build-log compression that preserves critical diagnostic lines and nearby context, or returns unmodified input if important material is too large.
-- Exact duplicate paragraph removal.
-- MCP stdio tools: `contextsquirrel_search`, `contextsquirrel_compress_log`, `contextsquirrel_dedupe`, `contextsquirrel_reindex`.
-- Example Claude Code and Codex session-start plugin configuration, plus an Antigravity MCP configuration example.
-- Automated unit tests and a **synthetic tool-output** benchmark.
-
-## Integrate via MCP (recommended)
-
-Run `node /absolute/path/to/contextsquirrel/bin/contextsquirrel.js mcp` with environment variable `CONTEXTSQUIRREL_ROOT` set to your repository. Configure your coding assistant's MCP server entry using `examples/mcp_config.example.json`; replace all placeholder absolute paths. The executable speaks MCP JSON-RPC over newline-delimited stdio. It never connects to an external API.
-
-### Claude Code
-
-Use your Claude Code MCP integration to register the server. One possible CLI setup (confirm against your installed version):
-
-```bash
-claude mcp add contextsquirrel --env CONTEXTSQUIRREL_ROOT=/absolute/path/to/repository -- node /absolute/path/to/contextsquirrel/bin/contextsquirrel.js mcp
-```
-
-A separate opt-in **SessionStart-only advisory** plugin example lives in `integrations/claude-plugin/`. The plugin does **not** rewrite provider prompts, automatically compress all tools, or change model billing. Validate plugin installation steps with your Claude Code release.
-
-### Codex
-
-Register the same server using the Codex MCP configuration or CLI, for example:
-
-```bash
-codex mcp add contextsquirrel --env CONTEXTSQUIRREL_ROOT=/absolute/path/to/repository -- node /absolute/path/to/contextsquirrel/bin/contextsquirrel.js mcp
-```
-
-An opt-in Codex SessionStart advisory plugin example is under `integrations/codex-plugin/`. Native hook packaging and trust requirements vary by Codex version; inspect `/hooks` and confirm the plugin is enabled.
-
-### Google Antigravity
-
-Open **MCP Servers → Manage MCP Servers → View raw config**, then adapt `integrations/antigravity/mcp_config.example.json`. This registers ContextSquirrel as an optional **MCP tool**, not a request interceptor.
-
-## Claude Code slash-command Safe Mode
-
-ContextSquirrel ships a global **`/squirrel`** command for Claude Code (including the VS Code Claude Code extension). It is a Claude Code **skill** and an advisory SessionStart hook, NOT an automatic prompt interceptor. Real token savings have not been benchmarked.
-
-### Install once on macOS / Linux
-
-```bash
-cd ~/Downloads/contextsquirrel
 bash install.sh
 ```
 
-The installer copies the app to `~/.contextsquirrel/app`, installs `~/.claude/skills/squirrel/SKILL.md`, and merges a single SessionStart hook into `~/.claude/settings.json`. It backs up existing settings. Restart Claude Code in VS Code, open any project, and in **Claude Code chat** (not Terminal) type:
+Restart Claude Code / VS Code, open any project, and in the **Claude Code
+chat** type:
 
 ```text
 /squirrel
-/squirrel status
-/squirrel off
 ```
 
-The state is stored at `YOUR_PROJECT/.contextsquirrel/mode.json`; add `.contextsquirrel/` to your project's `.gitignore` if desired. Only the selected project is enabled. The command runs through Claude's Bash tool; approve the request if prompted. Claude Code Desktop chat (non-Code) does not support this workflow.
+That's it — Safe Mode is on for that project. Turn it off anytime with
+`/squirrel off`, or check `/squirrel status`. No terminal needed after
+the first install.
 
-CLI alternative from a project directory:
+<details>
+<summary>What did that installer just do?</summary>
+
+- Copied the app to `~/.contextsquirrel/app`
+- Installed the `/squirrel` skill to `~/.claude/skills/squirrel/`
+- Added one SessionStart hook to `~/.claude/settings.json` (and backed up
+  your existing settings first)
+- Didn't touch any other hooks or settings you already had
+
+</details>
+
+### 🟡 Path 2: You use Claude Code, Codex, Antigravity, or anything that speaks MCP
+
+Run ContextSquirrel as an MCP server and point your assistant at it:
 
 ```bash
-node "$HOME/.contextsquirrel/app/bin/contextsquirrel.js" on
-node "$HOME/.contextsquirrel/app/bin/contextsquirrel.js" status
-node "$HOME/.contextsquirrel/app/bin/contextsquirrel.js" off
+git clone https://github.com/akashraj21/contextsquirrel.git
+node /absolute/path/to/contextsquirrel/bin/contextsquirrel.js mcp
 ```
 
-To remove the integration manually, delete `~/.claude/skills/squirrel/`, remove the ContextSquirrel SessionStart entry from `~/.claude/settings.json`, and delete `~/.contextsquirrel/app`. Other hooks and settings should remain untouched.
+Then register it with your tool. Copy `examples/mcp_config.example.json`
+and swap in your real paths:
 
-## Project structure
+```json
+{
+  "mcpServers": {
+    "contextsquirrel": {
+      "command": "node",
+      "args": ["/absolute/path/to/contextsquirrel/bin/contextsquirrel.js", "mcp"],
+      "env": { "CONTEXTSQUIRREL_ROOT": "/absolute/path/to/your/project" }
+    }
+  }
+}
+```
+
+**Claude Code CLI:**
+```bash
+claude mcp add contextsquirrel --env CONTEXTSQUIRREL_ROOT=/absolute/path/to/repo -- node /absolute/path/to/contextsquirrel/bin/contextsquirrel.js mcp
+```
+
+**Codex CLI:**
+```bash
+codex mcp add contextsquirrel --env CONTEXTSQUIRREL_ROOT=/absolute/path/to/repo -- node /absolute/path/to/contextsquirrel/bin/contextsquirrel.js mcp
+```
+
+**Google Antigravity:** open **MCP Servers → Manage MCP Servers → View raw
+config** and adapt `integrations/antigravity/mcp_config.example.json`.
+
+This hands your assistant 4 tools it can call on its own:
+`contextsquirrel_search`, `contextsquirrel_compress_log`,
+`contextsquirrel_dedupe`, `contextsquirrel_reindex`.
+
+### 🔵 Path 3: You just want the CLI, no assistant integration
+
+```bash
+git clone https://github.com/akashraj21/contextsquirrel.git
+cd contextsquirrel
+npm test                                  # make sure everything's happy
+
+CONTEXTSQUIRREL_ROOT=/path/to/your/project node bin/contextsquirrel.js index
+CONTEXTSQUIRREL_ROOT=/path/to/your/project node bin/contextsquirrel.js search "session authentication"
+node bin/contextsquirrel.js compress /path/to/build.log
+node bin/contextsquirrel.js dedupe notes.txt
+node bin/contextsquirrel.js benchmark
+```
+
+Want it installed as a global `contextsquirrel` command instead of typing
+the full path every time?
+
+```bash
+npm install -g .
+contextsquirrel search "session authentication"
+```
+
+**Windows (PowerShell) users:** set the env var like this instead:
+```powershell
+$env:CONTEXTSQUIRREL_ROOT = 'C:\path\to\your\project'
+```
+
+**Requirements for every path:** [Node.js](https://nodejs.org) 20 or newer.
+That's the whole dependency list — seriously, check `package.json`, there
+isn't one.
+
+---
+
+## What's actually implemented today
+
+- 📂 Local file indexing — skips secrets, `node_modules`, build output, symlinks, anything huge
+- 🔍 Keyword-ranked search over that index, returns line-numbered snippets with a token budget cap
+- 🪵 Build-log compression that keeps every error/warning + surrounding context, and safely bails out to the original log if that critical content is too big to trust a summary
+- 🧹 Exact-duplicate-paragraph removal
+- 🔌 An MCP server exposing all of the above as callable tools
+- ✅ Unit tests (`npm test`) and a synthetic benchmark (`contextsquirrel benchmark`)
+
+## What it is *not* (so nobody's surprised later)
+
+- It does **not** intercept or rewrite your requests to Claude/OpenAI/whoever.
+- It does **not** change your model billing.
+- The `benchmark` command tests synthetic log compression only — it is
+  **not** a measurement of real end-to-end token savings. We're not going
+  to claim 60–70% savings until we've actually run that experiment
+  properly. That number is a *target*, written down here so we can hold
+  ourselves to it, not a result.
+- It is **not** a secret scanner. `.env`/credential-looking paths are
+  excluded from indexing on a best-effort basis — don't rely on it as your
+  only safeguard.
+- Search results are partial excerpts. Read the full file before editing
+  based on a snippet.
+
+## Privacy, in one breath
+
+No telemetry. No network calls. No paid model. Everything happens on your
+machine, reading your own files. The only thing it writes is a small index
+file at `.contextsquirrel/index.json` (metadata and hashes, not your source
+code) — add `.contextsquirrel/` to your `.gitignore`.
+
+## Uninstalling
+
+```bash
+rm -rf ~/.claude/skills/squirrel ~/.contextsquirrel/app
+```
+Then remove the ContextSquirrel entry from the `SessionStart` section of
+`~/.claude/settings.json`.
+
+## Project layout
 
 ```
-bin/contextsquirrel.js      CLI entrypoint (on|off|status|index|search|compress|dedupe|benchmark|mcp)
-src/core.js                  Indexing, search, log compression, dedupe, token estimation
-src/mcp.js                   MCP stdio server (tools/list, tools/call)
-src/mode.js                  Project-scoped Safe Mode state (.contextsquirrel/mode.json)
-integrations/                Claude Code skill + plugin, Codex plugin, Antigravity MCP example
-scripts/install-claude.mjs   Global installer used by install.sh
-tests/                        node:test unit tests
-examples/                     Example MCP client configuration
+bin/contextsquirrel.js      the CLI (on|off|status|index|search|compress|dedupe|benchmark|mcp)
+src/core.js                  indexing, search, log compression, dedupe
+src/mcp.js                   the MCP server
+src/mode.js                  per-project Safe Mode on/off state
+integrations/                Claude Code skill + plugin, Codex plugin, Antigravity example
+scripts/install-claude.mjs   what install.sh actually runs
+tests/                        npm test lives here
 ```
-
-## Privacy and correctness
-
-- Default: no telemetry, no network calls, no paid model.
-- `.env` and typical credentials excluded from indexing; check project-specific secret formats before any use. This is not a comprehensive secret detector.
-- Source search returns partial excerpts. Before editing, read complete relevant files using your normal tools.
-- Log compression is *lossy* for successful lines. When precise logs matter, use the original log.
-- Token estimates use bytes/4, **not provider tokenizers or billable usage**. Unicode and code can diverge significantly.
-- Index metadata is saved under `.contextsquirrel/index.json` (source code is not stored in the index). Ignore this directory in Git.
-- The MCP server only reads project files and writes its own index when requested; no shell execution and no file-edit MCP tool.
-
-## Performance claims
-
-Our long-term research target is **60–70% lower end-to-end token usage in suitable workflows**, with equal task correctness. **No such performance is claimed by v0.2.0.** The included `benchmark` command only tests synthetic log-output compression. End-to-end savings require controlled experiments across Claude/Codex/Antigravity with measured total usage, retries, model cache accounting, tool calls and task-completion rates.
 
 ## Roadmap
 
-1. Real tokenizer support and persistent benchmark harness with task fixtures.
-2. AST-aware retrieval, semantic indexing and incremental hashing.
-3. Real-world plugin integration validation and compatibility CI.
-4. Optional visual metrics dashboard, user consent and transparent reporting.
+1. A real tokenizer (not the bytes/4 guess we use today) + a persistent benchmark harness
+2. Smarter, AST-aware retrieval instead of keyword matching
+3. Real compatibility testing across Claude Code / Codex / Antigravity
+4. A transparent savings dashboard, once we have real numbers to show
 
 ## Contributing
 
-Open issues and PRs. Please include failing tests when fixing bugs and avoid benchmark claims without reproducible evidence. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and ground rules, and [CHANGELOG.md](CHANGELOG.md) for release history.
+PRs and issues welcome! We keep this project deliberately small — zero
+runtime dependencies, no telemetry, no inflated performance claims. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for the ground rules and
+[CHANGELOG.md](CHANGELOG.md) for what's shipped so far.
+
+MIT licensed — see [LICENSE](LICENSE). Go build something fun with it. 🐿️
