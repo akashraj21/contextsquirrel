@@ -6,18 +6,18 @@ import { serveMcp } from '../src/mcp.js';
 import { getStatus, setMode, sessionHook, policyText } from '../src/mode.js';
 
 const [command, ...args] = process.argv.slice(2);
-const root = path.resolve(process.env.TOKENSHIELD_ROOT || process.cwd());
+const root = path.resolve(process.env.CONTEXTSQUIRREL_ROOT || process.cwd());
 
-const USAGE = `TokenShield 0.2.0
+const USAGE = `ContextSquirrel 0.2.0 \u{1F43F}️
 Usage:
-  tokenshield on|off|toggle|status
-  tokenshield index
-  tokenshield search "your question"
-  tokenshield compress path/to/build.log (or stdin)
-  tokenshield dedupe path/to/text.txt (or stdin)
-  tokenshield benchmark
-  tokenshield mcp
-Set TOKENSHIELD_ROOT=/path/to/project to target another repository.`;
+  contextsquirrel on|off|toggle|status
+  contextsquirrel index
+  contextsquirrel search "your question"
+  contextsquirrel compress path/to/build.log (or stdin)
+  contextsquirrel dedupe path/to/text.txt (or stdin)
+  contextsquirrel benchmark
+  contextsquirrel mcp
+Set CONTEXTSQUIRREL_ROOT=/path/to/project to target another repository.`;
 
 function readInput() {
   return args.length ? fs.readFileSync(path.resolve(args[0]), 'utf8') : fs.readFileSync(0, 'utf8');
@@ -73,7 +73,7 @@ try {
       break;
 
     case 'policy':
-      output(getStatus(root).enabled ? policyText() : 'TokenShield inactive in this project.');
+      output(getStatus(root).enabled ? policyText() : 'ContextSquirrel inactive in this project.');
       break;
 
     case 'hook-session-start':
@@ -117,6 +117,6 @@ try {
       output(USAGE);
   }
 } catch (e) {
-  process.stderr.write(`TokenShield error: ${e.message}\n`);
+  process.stderr.write(`ContextSquirrel error: ${e.message}\n`);
   process.exitCode = 1;
 }

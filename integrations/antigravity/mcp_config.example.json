@@ -1,1 +1,1 @@
-{"mcpServers":{"tokenshield":{"command":"node","args":["/ABSOLUTE/PATH/TO/tokenshield/bin/tokenshield.js","mcp"],"env":{"TOKENSHIELD_ROOT":"/ABSOLUTE/PATH/TO/YOUR/PROJECT"}}}}
+{"mcpServers":{"contextsquirrel":{"command":"node","args":["/ABSOLUTE/PATH/TO/contextsquirrel/bin/contextsquirrel.js","mcp"],"env":{"CONTEXTSQUIRREL_ROOT":"/ABSOLUTE/PATH/TO/YOUR/PROJECT"}}}}

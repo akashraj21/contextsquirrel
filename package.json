@@ -1,19 +1,19 @@
 {
-  "name": "tokenshield",
+  "name": "contextsquirrel",
   "version": "0.2.0",
-  "description": "Local-first context optimization and retrieval for AI coding assistants",
+  "description": "A local-first AI coding assistant sidekick that buries the good context and skips the junk 🐿️",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/akashraj21/tokenshield.git"
+    "url": "git+https://github.com/akashraj21/contextsquirrel.git"
   },
-  "homepage": "https://github.com/akashraj21/tokenshield#readme",
+  "homepage": "https://github.com/akashraj21/contextsquirrel#readme",
   "bugs": {
-    "url": "https://github.com/akashraj21/tokenshield/issues"
+    "url": "https://github.com/akashraj21/contextsquirrel/issues"
   },
   "author": "akashraj21",
   "bin": {
-    "tokenshield": "./bin/tokenshield.js"
+    "contextsquirrel": "./bin/contextsquirrel.js"
   },
   "files": [
     "bin",
@@ -27,8 +27,8 @@
   ],
   "scripts": {
     "test": "node --test tests/*.test.js",
-    "benchmark": "node bin/tokenshield.js benchmark",
-    "start": "node bin/tokenshield.js"
+    "benchmark": "node bin/contextsquirrel.js benchmark",
+    "start": "node bin/contextsquirrel.js"
   },
   "engines": {
     "node": ">=20"

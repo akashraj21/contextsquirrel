@@ -6,18 +6,19 @@ This project follows [Semantic Versioning](https://semver.org/) on a best-effort
 ## [0.2.0] - 2026-11-13
 
 ### Added
-- `/tokenshield` Claude Code slash command (skill) with `on`/`off`/`status` sub-actions.
-- Project-scoped Safe Mode state persisted to `.tokenshield/mode.json`.
+- `/squirrel` Claude Code slash command (skill) with `on`/`off`/`status` sub-actions.
+- Project-scoped Safe Mode state persisted to `.contextsquirrel/mode.json`.
 - `install.sh` / `scripts/install-claude.mjs` global installer for Claude Code.
 
 ### Changed
-- Reformatted all source files (`src/`, `bin/tokenshield.js`) for readability; no behavior changes.
+- **Renamed the project from TokenShield to ContextSquirrel** 🐿️ — same tool, friendlier name. CLI binary, MCP tool names (`contextsquirrel_search` etc.), env var (`CONTEXTSQUIRREL_ROOT`), and state directory (`.contextsquirrel/`) all follow.
+- Reformatted all source files (`src/`, `bin/contextsquirrel.js`) for readability; no behavior changes.
 - Synced version numbers across `package.json`, the Claude/Codex plugin manifests, and the MCP server info.
 
 ## [0.1.0] - 2026-11-13
 
 ### Added
 - Initial developer preview: local file indexing, keyword-ranked search, safe build-log compression, exact-duplicate paragraph removal.
-- MCP stdio server exposing `tokenshield_search`, `tokenshield_compress_log`, `tokenshield_dedupe`, `tokenshield_reindex`.
+- MCP stdio server exposing search, log-compression, dedupe, and reindex tools.
 - Claude Code / Codex / Antigravity integration examples.
 - Unit tests and a synthetic log-compression benchmark.

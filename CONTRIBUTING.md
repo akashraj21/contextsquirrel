@@ -1,6 +1,6 @@
-# Contributing to TokenShield
+# Contributing to ContextSquirrel 🐿️
 
-Thanks for considering a contribution. TokenShield is a small, zero-dependency
+Thanks for considering a contribution. ContextSquirrel is a small, zero-dependency
 Node.js tool, and we'd like to keep it that way — please read this before
 opening a PR.
 
@@ -9,7 +9,7 @@ opening a PR.
 - **No runtime dependencies.** The project ships as plain Node.js 20+ with no
   `node_modules` at runtime. Don't add a package unless there's no reasonable
   way to avoid it, and discuss it in an issue first.
-- **No telemetry, no network calls.** TokenShield is local-only by design.
+- **No telemetry, no network calls.** ContextSquirrel is local-only by design.
   Any change that phones home will be rejected.
 - **Don't inflate the savings story.** The `benchmark` command measures
   synthetic log compression only, not end-to-end model token usage. Please
@@ -20,11 +20,11 @@ opening a PR.
 
 ```bash
 git clone <your fork>
-cd tokenshield
+cd contextsquirrel
 npm test
 ```
 
-There's no build step. `bin/tokenshield.js` runs directly against `src/`.
+There's no build step. `bin/contextsquirrel.js` runs directly against `src/`.
 
 ## Making a change
 
@@ -40,10 +40,10 @@ There's no build step. `bin/tokenshield.js` runs directly against `src/`.
 ## Reporting issues
 
 Please include:
-- TokenShield version (`node bin/tokenshield.js status` or `--version` if available)
+- ContextSquirrel version (`node bin/contextsquirrel.js status` or `--version` if available)
 - Node.js version (`node --version`)
 - Exact command run and full output
-- Whether the issue reproduces with a fresh `.tokenshield/` index (`tokenshield index`)
+- Whether the issue reproduces with a fresh `.contextsquirrel/` index (`contextsquirrel index`)
 
 ## Security
 

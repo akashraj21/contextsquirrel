@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const configFile = (root) => path.join(root, '.tokenshield', 'mode.json');
+const configFile = (root) => path.join(root, '.contextsquirrel', 'mode.json');
 
 export function getStatus(root) {
   const file = configFile(path.resolve(root));
@@ -28,7 +28,7 @@ export function setMode(root, mode) {
 }
 
 export function policyText() {
-  return `TokenShield SAFE MODE is enabled for this project. Prefer precise, relevant file searches and bounded output rather than dumping entire directories. Avoid repeated reads of unchanged files when already in context. For long successful logs, preserve errors, warnings and surrounding lines while collapsing irrelevant repetition. Never shorten final answers solely to save tokens; provide all required implementation details. Do not omit dependencies, tests, security issues, or user requirements. If optimized context is insufficient, retrieve original content. This is advisory context hygiene, not automatic interception or a guarantee of token savings.`;
+  return `ContextSquirrel SAFE MODE is enabled for this project. Prefer precise, relevant file searches and bounded output rather than dumping entire directories. Avoid repeated reads of unchanged files when already in context. For long successful logs, preserve errors, warnings and surrounding lines while collapsing irrelevant repetition. Never shorten final answers solely to save tokens; provide all required implementation details. Do not omit dependencies, tests, security issues, or user requirements. If optimized context is insufficient, retrieve original content. This is advisory context hygiene, not automatic interception or a guarantee of token savings.`;
 }
 
 export function sessionHook(root) {

@@ -1,10 +1,10 @@
 import { buildIndex, loadIndex, saveIndex, searchIndex, compressLog, dedupeSections } from './core.js';
 
-const root = process.env.TOKENSHIELD_ROOT || process.cwd();
+const root = process.env.CONTEXTSQUIRREL_ROOT || process.cwd();
 
 const TOOLS = [
   {
-    name: 'tokenshield_search',
+    name: 'contextsquirrel_search',
     description: 'Search locally indexed project files and retrieve relevant, line-numbered excerpts. Index is built automatically if missing. Source snippets are partial.',
     inputSchema: {
       type: 'object',
@@ -16,7 +16,7 @@ const TOOLS = [
     },
   },
   {
-    name: 'tokenshield_compress_log',
+    name: 'contextsquirrel_compress_log',
     description: 'Safely condense long build/test logs while preserving error and surrounding context. Returns original if safety budget exceeded.',
     inputSchema: {
       type: 'object',
@@ -28,12 +28,12 @@ const TOOLS = [
     },
   },
   {
-    name: 'tokenshield_dedupe',
+    name: 'contextsquirrel_dedupe',
     description: 'Remove exact repeated paragraphs from supplied text.',
     inputSchema: { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] },
   },
   {
-    name: 'tokenshield_reindex',
+    name: 'contextsquirrel_reindex',
     description: 'Rebuild local project index after source changes.',
     inputSchema: { type: 'object', properties: {} },
   },
@@ -49,15 +49,15 @@ function err(id, code, message) {
 
 async function callTool(name, args) {
   switch (name) {
-    case 'tokenshield_search': {
+    case 'contextsquirrel_search': {
       const idx = loadIndex(root);
       return searchIndex(root, idx, args.query || '', { maxTokens: args.maxTokens || 1600 });
     }
-    case 'tokenshield_compress_log':
+    case 'contextsquirrel_compress_log':
       return compressLog(args.text || '', { maxLines: args.maxLines || 100 });
-    case 'tokenshield_dedupe':
+    case 'contextsquirrel_dedupe':
       return dedupeSections(args.text || '');
-    case 'tokenshield_reindex': {
+    case 'contextsquirrel_reindex': {
       const idx = buildIndex(root);
       saveIndex(root, idx);
       return { indexed: idx.files.length };
@@ -71,7 +71,7 @@ async function handle(msg) {
   const { id, method, params = {} } = msg;
 
   if (method === 'initialize') {
-    return resp(id, { protocolVersion: '2025-03-26', capabilities: { tools: {} }, serverInfo: { name: 'tokenshield', version: '0.2.0' } });
+    return resp(id, { protocolVersion: '2025-03-26', capabilities: { tools: {} }, serverInfo: { name: 'contextsquirrel', version: '0.2.0' } });
   }
   if (method === 'notifications/initialized') return null;
   if (method === 'ping') return resp(id, {});

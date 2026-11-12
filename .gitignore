@@ -1,4 +1,4 @@
-.tokenshield/
+.contextsquirrel/
 node_modules/
 *.log
 .DS_Store

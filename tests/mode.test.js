@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {getStatus,setMode,policyText} from '../src/mode.js';
 test('Safe mode project-local toggle',()=>{
- const root=mkdtempSync(path.join(os.tmpdir(),'tokenshield-mode-'));
+ const root=mkdtempSync(path.join(os.tmpdir(),'contextsquirrel-mode-'));
  try{
  assert.equal(getStatus(root).enabled,false);
  assert.equal(setMode(root,'safe').mode,'safe');
