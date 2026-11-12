@@ -1,0 +1,47 @@
+{
+  "name": "tokenshield",
+  "version": "0.2.0",
+  "description": "Local-first context optimization and retrieval for AI coding assistants",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/akashraj21/tokenshield.git"
+  },
+  "homepage": "https://github.com/akashraj21/tokenshield#readme",
+  "bugs": {
+    "url": "https://github.com/akashraj21/tokenshield/issues"
+  },
+  "author": "akashraj21",
+  "bin": {
+    "tokenshield": "./bin/tokenshield.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "scripts",
+    "integrations",
+    "examples",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "benchmark": "node bin/tokenshield.js benchmark",
+    "start": "node bin/tokenshield.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "private": false,
+  "keywords": [
+    "ai",
+    "tokens",
+    "mcp",
+    "context",
+    "claude",
+    "codex",
+    "cli"
+  ]
+}

@@ -1,0 +1,2 @@
+// Advisory hook only. Does not intercept or rewrite Claude's model input.
+process.stdout.write(JSON.stringify({continue:true,hookSpecificOutput:{hookEventName:'SessionStart',additionalContext:'TokenShield available as an optional MCP tool. For repository exploration, prefer tokenshield_search over dumping entire files when sufficient; re-read original files before making edits. Never omit test failures or security details.'}}));
