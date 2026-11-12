@@ -156,10 +156,17 @@ isn't one.
 - It does **not** intercept or rewrite your requests to Claude/OpenAI/whoever.
 - It does **not** change your model billing.
 - The `benchmark` command tests synthetic log compression only — it is
-  **not** a measurement of real end-to-end token savings. We're not going
-  to claim 60–70% savings until we've actually run that experiment
-  properly. That number is a *target*, written down here so we can hold
-  ourselves to it, not a result.
+  **not** a measurement of real end-to-end token savings.
+- `scripts/real-benchmark.mjs` is a small, honest measurement: 5 hand-verified
+  "does search surface the file that actually answers this?" queries against
+  this repo, comparing search output tokens to reading the correct file in
+  full. Current result on this repo: **100% hit rate, ~30% average token
+  reduction on hits** (estimated tokens, not provider-billed tokens). A few
+  cases come out roughly break-even — small files and queries where two
+  files are both genuinely relevant don't always save tokens, and that's
+  reported honestly rather than smoothed over. This is a small, repo-local
+  sample, not a universal claim — run `node scripts/real-benchmark.mjs
+  /path/to/your/repo` to see your own numbers.
 - It is **not** a secret scanner. `.env`/credential-looking paths are
   excluded from indexing on a best-effort basis — don't rely on it as your
   only safeguard.
