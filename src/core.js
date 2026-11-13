@@ -309,6 +309,191 @@ export function compressLog(input, { maxLines = 100, maxChars = 12000 } = {}) {
   };
 }
 
+const TEST_FAILURE_LINE = /(^\s*(FAIL|FAILED|--- FAIL:)\b|✗|✖|❌|assertionerror|panic:|traceback|^\s*raise\b|expected.*(to|but))/i;
+
+/**
+ * Like compressLog, but tuned for test-runner output: keeps only failure
+ * blocks (FAIL/FAILED/panic/traceback lines plus trailing stack context)
+ * and a pass/fail count, dropping the noise from passing tests.
+ */
+export function extractTestFailures(input, { maxLines = 150, maxChars = 12000 } = {}) {
+  const lines = String(input).split(/\r?\n/);
+  const failed = lines.filter((l) => /^\s*(FAIL|FAILED|--- FAIL:)\b/i.test(l)).length;
+  const passed = lines.filter((l) => /^\s*(PASS|ok)\b/i.test(l)).length;
+  const summary = { failed, passed };
+
+  if (lines.length <= maxLines && input.length <= maxChars) {
+    return { text: input, changed: false, originalLines: lines.length, keptLines: lines.length, summary };
+  }
+
+  const keep = new Set();
+  for (let i = 0; i < lines.length; i++) {
+    if (TEST_FAILURE_LINE.test(lines[i])) {
+      for (let j = Math.max(0, i - 2); j <= Math.min(lines.length - 1, i + 6); j++) keep.add(j);
+    }
+  }
+
+  if (!keep.size) return compressLog(input, { maxLines, maxChars });
+
+  const ranked = [...keep].sort((a, b) => a - b);
+  if (ranked.reduce((n, i) => n + lines[i].length + 12, 0) > maxChars) {
+    return { text: input, changed: false, originalLines: lines.length, keptLines: lines.length, reason: 'critical data exceeds budget', summary };
+  }
+
+  let result = '';
+  let last = -1;
+  for (const i of ranked) {
+    const gap = i - last - 1;
+    const prefix = gap > 0 ? `[${gap} unselected lines omitted]\n` : '';
+    const next = `${i + 1}: ${lines[i]}\n`;
+    if (result.length + prefix.length + next.length > maxChars) {
+      return { text: input, changed: false, originalLines: lines.length, keptLines: lines.length, reason: 'budget exceeded', summary };
+    }
+    result += prefix + next;
+    last = i;
+  }
+  if (last < lines.length - 1) result += `[${lines.length - 1 - last} unselected lines omitted]\n`;
+
+  return {
+    text: result.trimEnd(),
+    changed: true,
+    originalLines: lines.length,
+    keptLines: ranked.length,
+    summary,
+    warning: 'Only failure blocks kept. Use original output for full investigation.',
+  };
+}
+
+/**
+ * Compress a unified git diff to per-file +/- stats plus the actual changed
+ * lines (hunk headers and +/- lines), dropping unchanged context lines.
+ */
+export function summarizeDiff(input, { maxFiles = 50, maxCharsPerFile = 2000 } = {}) {
+  const text = String(input);
+  if (!text.includes('diff --git')) {
+    return { text, changed: false, files: [], warning: 'Input does not look like a unified git diff; returned unchanged.' };
+  }
+
+  const chunks = text.split(/(?=^diff --git )/m).filter(Boolean);
+  const files = [];
+  const outputs = [];
+
+  for (const chunk of chunks.slice(0, maxFiles)) {
+    const header = chunk.match(/^diff --git a\/(.+?) b\/(.+)$/m);
+    const filePath = header ? header[2] : 'unknown';
+    const lines = chunk.split(/\r?\n/);
+    let additions = 0;
+    let deletions = 0;
+    const kept = [];
+
+    for (const line of lines) {
+      if (line.startsWith('+++') || line.startsWith('---')) continue;
+      if (line.startsWith('+')) additions++;
+      else if (line.startsWith('-')) deletions++;
+      if (line.startsWith('@@') || line.startsWith('+') || line.startsWith('-')) kept.push(line);
+    }
+
+    files.push({ path: filePath, additions, deletions });
+
+    let body = `FILE ${filePath} (+${additions}/-${deletions})\n`;
+    for (const line of kept) {
+      if (body.length + line.length + 1 > maxCharsPerFile) break;
+      body += line + '\n';
+    }
+    outputs.push(body.trimEnd());
+  }
+
+  const text2 = outputs.join('\n\n');
+  return {
+    text: text2,
+    changed: true,
+    files,
+    estimatedTokens: estimateTokens(text2),
+    warning: 'Unchanged context lines dropped; only hunk headers and +/- lines kept. Use the original diff for full review.',
+  };
+}
+
+function symbolName(text) {
+  const m = text.match(/(?:function|class|interface|type|enum|def|fun|func)\s+([\w$]+)/);
+  return m ? m[1] : text.trim().slice(0, 40);
+}
+
+/**
+ * Render a compact repo tree from an already-built index: directories plus,
+ * per file, a short list of its top-level symbols instead of full content.
+ */
+export function repoTree(index, { maxSymbolsPerFile = 5 } = {}) {
+  const root = {};
+  for (const file of index.files) {
+    const parts = file.path.split('/');
+    let node = root;
+    for (let i = 0; i < parts.length - 1; i++) {
+      node[parts[i]] = node[parts[i]] || { __dir: true, children: {} };
+      node = node[parts[i]].children;
+    }
+    node[parts[parts.length - 1]] = { __file: true, symbols: file.symbols || [] };
+  }
+
+  const lines = [];
+  function render(node, depth) {
+    for (const key of Object.keys(node).sort()) {
+      const entry = node[key];
+      const indent = '  '.repeat(depth);
+      if (entry.__file) {
+        const names = entry.symbols.slice(0, maxSymbolsPerFile).map((s) => symbolName(s.text));
+        const extra = entry.symbols.length > maxSymbolsPerFile ? `, +${entry.symbols.length - maxSymbolsPerFile} more` : '';
+        lines.push(`${indent}${key}${names.length ? ` (${names.join(', ')}${extra})` : ''}`);
+      } else {
+        lines.push(`${indent}${key}/`);
+        render(entry.children, depth + 1);
+      }
+    }
+  }
+  render(root, 0);
+
+  const text = lines.join('\n');
+  return { text, fileCount: index.files.length, estimatedTokens: estimateTokens(text) };
+}
+
+/**
+ * Summarize a large JSON file's shape (keys/types, array length + one
+ * sampled element) instead of returning every value.
+ */
+export function summarizeStructure(input, { maxDepth = 2, maxChars = 12000 } = {}) {
+  const text = String(input);
+  if (text.length <= maxChars) return { text, changed: false };
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return { text, changed: false, warning: 'Input is not valid JSON; returned unchanged.' };
+  }
+
+  function describe(value, depth) {
+    if (Array.isArray(value)) {
+      if (!value.length) return [];
+      if (depth >= maxDepth) return [`array(${value.length})`];
+      return [{ __length: value.length, __sample: describe(value[0], depth + 1) }];
+    }
+    if (value !== null && typeof value === 'object') {
+      if (depth >= maxDepth) return '{...}';
+      const out = {};
+      for (const key of Object.keys(value)) out[key] = describe(value[key], depth + 1);
+      return out;
+    }
+    return typeof value;
+  }
+
+  const shapeText = JSON.stringify(describe(data, 0), null, 2);
+  return {
+    text: shapeText,
+    changed: true,
+    estimatedTokens: estimateTokens(shapeText),
+    warning: 'Shape only (keys/types, one sampled array element). Read the original file for actual values.',
+  };
+}
+
 /** Remove exact duplicate paragraphs (blocks separated by a blank line). */
 export function dedupeSections(text) {
   const blocks = String(text).split(/\n\s*\n/);

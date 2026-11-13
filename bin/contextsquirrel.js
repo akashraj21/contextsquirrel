@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
-import { buildIndex, saveIndex, loadIndex, searchIndex, compressLog, dedupeSections, estimateTokens } from '../src/core.js';
+import { buildIndex, saveIndex, loadIndex, searchIndex, compressLog, dedupeSections, estimateTokens, extractTestFailures, summarizeDiff, repoTree, summarizeStructure } from '../src/core.js';
 import { serveMcp } from '../src/mcp.js';
 import { getStatus, setMode, sessionHook, policyText } from '../src/mode.js';
 
@@ -15,6 +15,10 @@ Usage:
   contextsquirrel search "your question"
   contextsquirrel compress path/to/build.log (or stdin)
   contextsquirrel dedupe path/to/text.txt (or stdin)
+  contextsquirrel test-failures path/to/test-output.log (or stdin)
+  contextsquirrel diff-summary path/to/change.diff (or stdin, e.g. git diff | contextsquirrel diff-summary)
+  contextsquirrel tree
+  contextsquirrel json-summary path/to/data.json (or stdin)
   contextsquirrel benchmark
   contextsquirrel mcp
 Set CONTEXTSQUIRREL_ROOT=/path/to/project to target another repository.`;
@@ -104,6 +108,33 @@ try {
     case 'dedupe':
       output(dedupeSections(readInput()));
       break;
+
+    case 'test-failures': {
+      const original = readInput();
+      const result = extractTestFailures(original);
+      output({ ...result, inputEstimatedTokens: estimateTokens(original), outputEstimatedTokens: estimateTokens(result.text) });
+      break;
+    }
+
+    case 'diff-summary': {
+      const original = readInput();
+      const result = summarizeDiff(original);
+      output({ ...result, inputEstimatedTokens: estimateTokens(original) });
+      break;
+    }
+
+    case 'tree': {
+      const idx = loadIndex(root);
+      output(repoTree(idx));
+      break;
+    }
+
+    case 'json-summary': {
+      const original = readInput();
+      const result = summarizeStructure(original);
+      output({ ...result, inputEstimatedTokens: estimateTokens(original) });
+      break;
+    }
 
     case 'mcp':
       serveMcp();

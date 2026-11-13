@@ -1,4 +1,4 @@
-import { buildIndex, loadIndex, saveIndex, searchIndex, compressLog, dedupeSections } from './core.js';
+import { buildIndex, loadIndex, saveIndex, searchIndex, compressLog, dedupeSections, extractTestFailures, summarizeDiff, repoTree, summarizeStructure } from './core.js';
 
 const root = process.env.CONTEXTSQUIRREL_ROOT || process.cwd();
 
@@ -37,6 +37,38 @@ const TOOLS = [
     description: 'Rebuild local project index after source changes.',
     inputSchema: { type: 'object', properties: {} },
   },
+  {
+    name: 'contextsquirrel_test_failures',
+    description: 'Condense test-runner output (jest/pytest/go test/etc.) to just the failure blocks and a pass/fail count. Returns original if nothing recognizable as a failure is found.',
+    inputSchema: {
+      type: 'object',
+      properties: { text: { type: 'string' }, maxLines: { type: 'integer', minimum: 20, maximum: 1000 } },
+      required: ['text'],
+    },
+  },
+  {
+    name: 'contextsquirrel_diff_summary',
+    description: 'Compress a unified git diff to per-file +/- stats plus the actual changed lines, dropping unchanged context.',
+    inputSchema: {
+      type: 'object',
+      properties: { diff: { type: 'string' }, maxFiles: { type: 'integer', minimum: 1, maximum: 200 } },
+      required: ['diff'],
+    },
+  },
+  {
+    name: 'contextsquirrel_repo_tree',
+    description: 'Return a compact directory tree of the indexed project with each file\'s top symbols, instead of listing/opening every file.',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'contextsquirrel_json_summary',
+    description: 'Summarize a large JSON document\'s shape (keys/types, array length + one sampled element) instead of returning every value.',
+    inputSchema: {
+      type: 'object',
+      properties: { text: { type: 'string' } },
+      required: ['text'],
+    },
+  },
 ];
 
 function resp(id, result) {
@@ -62,6 +94,16 @@ async function callTool(name, args) {
       saveIndex(root, idx);
       return { indexed: idx.files.length };
     }
+    case 'contextsquirrel_test_failures':
+      return extractTestFailures(args.text || '', { maxLines: args.maxLines || 150 });
+    case 'contextsquirrel_diff_summary':
+      return summarizeDiff(args.diff || '', { maxFiles: args.maxFiles || 50 });
+    case 'contextsquirrel_repo_tree': {
+      const idx = loadIndex(root);
+      return repoTree(idx);
+    }
+    case 'contextsquirrel_json_summary':
+      return summarizeStructure(args.text || '');
     default:
       return undefined;
   }

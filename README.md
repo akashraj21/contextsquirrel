@@ -26,13 +26,21 @@ your own files on your own machine.
 
 ## What does it actually do?
 
-| You ask your assistant...            | Without 🐿️                                   | With 🐿️                                                          |
-|---------------------------------------|------------------------------------------------|----------------------------------------------------------------------|
-| "Where's `verifySession` defined?"    | Opens files one by one, hoping to get lucky     | Searches a local index, hands back the exact lines with numbers       |
-| "Why'd the build fail?"                | Pastes the whole 5,000-line CI log               | Keeps the start, the end, and every error/warning with context, skips the boring middle |
-| "Summarize these 3 log dumps"          | Chews through the same repeated boilerplate 3x  | Strips the exact duplicate paragraphs first                           |
+Each transform takes some noisy input and keeps only what answers the question. Numbers below are from real runs on representative example inputs (estimated tokens, bytes÷4 — not provider-billed tokens, not a guarantee for your specific files):
 
-That's it. No prompt rewriting, no billing tricks, no secret sauce.
+| Command | What it keeps | Example: before → after | Reduction |
+|---|---|---|---|
+| `search` | Symbol definitions ranked above files that just mention the name, not a flat grep | ground-truth benchmark: 100% hit rate | ~30% avg on hits* |
+| `compress` | Start, end, every error/warning + context; drops the repetitive middle | 5,393 → 122 tokens | 97.7% |
+| `test-failures` | Only FAIL/panic/traceback blocks + a pass/fail count; passing-test noise dropped | 2,093 → 41 tokens | 98.0% |
+| `diff-summary` | Per-file +/- stats and the actual changed lines; unchanged context dropped | 339 → 12 tokens | 96.5% |
+| `tree` | Directory layout + each file's top symbols, instead of opening every file | 13,534 → 158 tokens | 98.8% |
+| `json-summary` | Shape only — keys/types, array length, one sampled element | 23,948 → 52 tokens | 99.8% |
+| `dedupe` | Exact-duplicate paragraphs removed, kept once | 115 → 44 tokens | 61.7% |
+
+\* See `scripts/real-benchmark.mjs` — the only row here checked against ground truth (did it find the right file, not just "is the output smaller"). Run it against your own repo for your own numbers; don't take the other rows' percentages as a guarantee on your files either — they're from one example input each, not an average across many.
+
+7 local, zero-dependency transforms. No prompt rewriting, no billing tricks, no secret sauce.
 
 ---
 
@@ -105,9 +113,11 @@ codex mcp add contextsquirrel --env CONTEXTSQUIRREL_ROOT=/absolute/path/to/repo 
 **Google Antigravity:** open **MCP Servers → Manage MCP Servers → View raw
 config** and adapt `integrations/antigravity/mcp_config.example.json`.
 
-This hands your assistant 4 tools it can call on its own:
+This hands your assistant 8 tools it can call on its own:
 `contextsquirrel_search`, `contextsquirrel_compress_log`,
-`contextsquirrel_dedupe`, `contextsquirrel_reindex`.
+`contextsquirrel_dedupe`, `contextsquirrel_reindex`,
+`contextsquirrel_test_failures`, `contextsquirrel_diff_summary`,
+`contextsquirrel_repo_tree`, `contextsquirrel_json_summary`.
 
 ### 🔵 Path 3: You just want the CLI, no assistant integration
 
@@ -120,7 +130,12 @@ CONTEXTSQUIRREL_ROOT=/path/to/your/project node bin/contextsquirrel.js index
 CONTEXTSQUIRREL_ROOT=/path/to/your/project node bin/contextsquirrel.js search "session authentication"
 node bin/contextsquirrel.js compress /path/to/build.log
 node bin/contextsquirrel.js dedupe notes.txt
+node bin/contextsquirrel.js test-failures /path/to/test-output.log
+git diff | node bin/contextsquirrel.js diff-summary
+CONTEXTSQUIRREL_ROOT=/path/to/your/project node bin/contextsquirrel.js tree
+node bin/contextsquirrel.js json-summary /path/to/data.json
 node bin/contextsquirrel.js benchmark
+node scripts/real-benchmark.mjs /path/to/your/project   # ground-truth search accuracy + token numbers
 ```
 
 Want it installed as a global `contextsquirrel` command instead of typing
@@ -145,8 +160,12 @@ isn't one.
 ## What's actually implemented today
 
 - 📂 Local file indexing — skips secrets, `node_modules`, build output, symlinks, anything huge
-- 🔍 Keyword-ranked search over that index, returns line-numbered snippets with a token budget cap
+- 🔍 Keyword-ranked search over that index, with symbol definitions outranking mere mentions, and a token budget cap that doesn't pad results with low-relevance filler
 - 🪵 Build-log compression that keeps every error/warning + surrounding context, and safely bails out to the original log if that critical content is too big to trust a summary
+- 🧪 Test-failure extraction — condenses jest/pytest/go-test/etc. output to just the failing blocks and a pass/fail count
+- 🔀 Diff summarization — compresses a unified git diff to per-file +/- stats and the actual changed lines, dropping unchanged context
+- 🌳 Repo tree — a compact directory listing with each file's top symbols, built from the same index as search
+- 📦 JSON shape summary — for large JSON files, returns keys/types and one sampled array element instead of the whole file
 - 🧹 Exact-duplicate-paragraph removal
 - 🔌 An MCP server exposing all of the above as callable tools
 - ✅ Unit tests (`npm test`) and a synthetic benchmark (`contextsquirrel benchmark`)
@@ -191,12 +210,13 @@ Then remove the ContextSquirrel entry from the `SessionStart` section of
 ## Project layout
 
 ```
-bin/contextsquirrel.js      the CLI (on|off|status|index|search|compress|dedupe|benchmark|mcp)
-src/core.js                  indexing, search, log compression, dedupe
+bin/contextsquirrel.js      the CLI (on|off|status|index|search|compress|dedupe|test-failures|diff-summary|tree|json-summary|benchmark|mcp)
+src/core.js                  indexing, search, log compression, test-failure extraction, diff summary, repo tree, json shape summary, dedupe
 src/mcp.js                   the MCP server
 src/mode.js                  per-project Safe Mode on/off state
 integrations/                Claude Code skill + plugin, Codex plugin, Antigravity example
 scripts/install-claude.mjs   what install.sh actually runs
+scripts/real-benchmark.mjs   ground-truth search accuracy + token benchmark (not synthetic)
 tests/                        npm test lives here
 ```
 
