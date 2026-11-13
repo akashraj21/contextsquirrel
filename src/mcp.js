@@ -113,7 +113,7 @@ async function handle(msg) {
   const { id, method, params = {} } = msg;
 
   if (method === 'initialize') {
-    return resp(id, { protocolVersion: '2025-03-26', capabilities: { tools: {} }, serverInfo: { name: 'contextsquirrel', version: '0.2.0' } });
+    return resp(id, { protocolVersion: '2025-03-26', capabilities: { tools: {} }, serverInfo: { name: 'contextsquirrel', version: '0.3.0' } });
   }
   if (method === 'notifications/initialized') return null;
   if (method === 'ping') return resp(id, {});

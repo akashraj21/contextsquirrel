@@ -199,6 +199,34 @@ machine, reading your own files. The only thing it writes is a small index
 file at `.contextsquirrel/index.json` (metadata and hashes, not your source
 code) — add `.contextsquirrel/` to your `.gitignore`.
 
+## Updating
+
+Check what you have installed:
+```bash
+node ~/.contextsquirrel/app/bin/contextsquirrel.js version
+```
+Compare against the latest tag at
+https://github.com/akashraj21/contextsquirrel/releases — then update
+using whichever path you installed with:
+
+- **Path 1 (Claude Code installer):** pull the latest code in your cloned
+  copy and re-run the installer — it overwrites `~/.contextsquirrel/app`
+  in place:
+  ```bash
+  cd contextsquirrel && git pull && bash install.sh
+  ```
+- **Path 2 (MCP server by path):** just `git pull` in the cloned repo your
+  MCP config points at — no config change needed, the next server start
+  picks it up.
+- **Path 3 (global npm install):** pull, then reinstall:
+  ```bash
+  cd contextsquirrel && git pull && npm install -g .
+  ```
+
+There's no auto-update check — this tool makes no network calls, including
+to check its own version, so checking for updates is a manual step on
+purpose.
+
 ## Uninstalling
 
 ```bash

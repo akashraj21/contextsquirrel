@@ -8,8 +8,9 @@ import { getStatus, setMode, sessionHook, policyText } from '../src/mode.js';
 const [command, ...args] = process.argv.slice(2);
 const root = path.resolve(process.env.CONTEXTSQUIRREL_ROOT || process.cwd());
 
-const USAGE = `ContextSquirrel 0.2.0 \u{1F43F}️
+const USAGE = `ContextSquirrel 0.3.0 \u{1F43F}️
 Usage:
+  contextsquirrel version
   contextsquirrel on|off|toggle|status
   contextsquirrel index
   contextsquirrel search "your question"
@@ -56,6 +57,12 @@ function runBenchmark() {
 
 try {
   switch (command) {
+    case 'version':
+    case '--version':
+    case '-v':
+      output('0.3.0');
+      break;
+
     case 'on':
     case 'enable':
       output(setMode(root, 'safe'));

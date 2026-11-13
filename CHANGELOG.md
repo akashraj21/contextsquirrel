@@ -3,6 +3,24 @@
 All notable changes to this project are documented here.
 This project follows [Semantic Versioning](https://semver.org/) on a best-effort basis while in `0.x`.
 
+## [0.3.0] - 2026-11-13
+
+### Fixed
+- `buildIndex` contained a literal raw NUL byte (0x00) inside its own binary-file check, which caused `src/core.js` to match itself as "binary" and be permanently excluded from its own search index — so searches for how its functions work could only ever find documentation mentions, never the real implementation. Replaced with the proper `\0` escape.
+- `saveIndex`/`loadIndex` wrote to a leftover `.tokenshield/` path from the pre-rename name instead of `.contextsquirrel/`, which also meant the index file wasn't covered by `.gitignore`.
+- Search ranking padded results up to the token budget with low-relevance filler files; it now scores symbol *definitions* above prose mentions and drops files that aren't meaningfully close to the top match. Measured on this repo's ground-truth benchmark: hit rate 60% → 100%, average token reduction on hits -86.3% → +30.5%.
+
+### Added
+- `extractTestFailures` / `contextsquirrel test-failures` / `contextsquirrel_test_failures`: condenses jest/pytest/go-test-style output to failure blocks + pass/fail count.
+- `summarizeDiff` / `contextsquirrel diff-summary` / `contextsquirrel_diff_summary`: compresses a unified git diff to per-file +/- stats and the changed lines, dropping unchanged context.
+- `repoTree` / `contextsquirrel tree` / `contextsquirrel_repo_tree`: compact directory tree with each file's top symbols, from the existing index.
+- `summarizeStructure` / `contextsquirrel json-summary` / `contextsquirrel_json_summary`: reduces large JSON to its shape (keys/types, array length + one sampled element).
+- `scripts/real-benchmark.mjs`: a ground-truth benchmark (does search find the file that answers the query, and at what token cost) to replace the synthetic benchmark's numbers with measured ones.
+- `contextsquirrel version` / `--version` / `-v`.
+
+### Changed
+- README's feature comparison replaced with real before/after token numbers per transform, each labeled as a single representative example rather than a guaranteed result.
+
 ## [0.2.0] - 2026-11-13
 
 ### Added
